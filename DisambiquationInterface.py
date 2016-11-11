@@ -6,6 +6,8 @@ class DisambiquationInterface(metaclass=ABCMeta):
         self.word = ""
         self.sense = None
         self.definition = ""
+        self.name = ""
+        self.description = ""
 
     @abstractmethod
     def setSentence(self, sentenceList):
@@ -27,6 +29,12 @@ class DisambiquationInterface(metaclass=ABCMeta):
     def makeSense(self):
         pass
 
+    def getAlgorithmInfo(self):
+        return {'name': self.name, 'description':self.description}
+
     @abstractmethod
-    def getSenseTuple(self):
-        return (self.sense.name(), self.definition)
+    def getSenseDict(self):
+        if self.sense is not None:
+            return {'sense':self.sense.name(), 'description': self.definition}
+        else:
+            return {}

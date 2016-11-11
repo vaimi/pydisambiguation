@@ -6,6 +6,8 @@ from itertools import chain
 class Lesk(DisambiquationInterface):
     def __init__(self):
         super().__init__()
+        self.name = 'Lesk'
+        self.description = ''
 
     def setSentence(self, sentenceList):
         super().setSentence(sentenceList)
@@ -21,11 +23,12 @@ class Lesk(DisambiquationInterface):
 
     def makeSense(self):
         sset = self.__parse(self.sentence, self.word)
-        self.sense = sset
-        self.definition = sset.definition()
+        if sset:
+            self.sense = sset
+            self.definition = sset.definition()
 
-    def getSenseTuple(self):
-        return super().getSenseTuple()
+    def getSenseDict(self):
+        return super().getSenseDict()
 
     def __parse(self, context_sentence, ambiguous_word, pos=None, stem=True, hyperhypo=True):
         # Based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
