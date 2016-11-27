@@ -2,17 +2,20 @@ from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
 from itertools import chain
 from nltk import word_tokenize, pos_tag, defaultdict
-from nltk.wsd import lesk
 from DisambiquationInterface import DisambiquationInterface
+import xlrd
+from xlrd.sheet import ctype_text
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 from nltk.corpus import stopwords
 
-class Euclidean(DisambiquationInterface):
+
+
+class EuclideanPlus(DisambiquationInterface):
     def __init__(self):
         super().__init__()
-        self.name = 'Euclidean'
+        self.name = 'Euclidean+'
         self.description = ''
-        self.sense = None
+        self.translator = self.parseXsl("morphosemantic-links.xls")
 
     def setSentence(self, sentenceList):
         super().setSentence(sentenceList)
@@ -30,15 +33,34 @@ class Euclidean(DisambiquationInterface):
         numberList = [0 if x is None else x for x in numberList]
         return float(sum(numberList)) / max(len(numberList), 1)
 
+    def parseXsl(self, fname):
+        f = xlrd.open_workbook(fname)
+        f_sheet = f.sheet_by_index(0)
+        translator = {}
+        for row in range(0, f_sheet.nrows):
+            verb_obj = f_sheet.cell(row, 0)
+            noun_obj = f_sheet.cell(row, 3)
+            v = verb_obj.value.split('%')
+            n = noun_obj.value.split('%')
+            translator[v[0]] = n[0]
+        return translator
+
+    def replaceByNoun(self, verb):
+        if verb in self.translator:
+            return self.translator[verb]
+        return verb
+
+
     def makeSense(self):
         lemmatizer = WordNetLemmatizer()
         self.sentence = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(self.sentence)])
         self.word = ''.join(lemmatizer.lemmatize(self.word))
-
+        splitted = self.sentence.split(' ')
+        self.sentence = ' '.join([self.replaceByNoun(verb) for verb in self.sentence.split(' ')])
+        self.word = self.replaceByNoun(self.word)
         words = word_tokenize(self.sentence)
         words = [word for word in words if word not in stopwords.words('english')]
         posWords = pos_tag(words, tagset='universal')
-
         wordTag = pos_tag(word_tokenize(self.word), tagset='universal')
         sentenceWords = None
         pos = None

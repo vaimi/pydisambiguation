@@ -12,6 +12,8 @@ class DisambiquationInterface(metaclass=ABCMeta):
     @abstractmethod
     def setSentence(self, sentenceList):
         self.sentence = sentenceList
+        self.sense = None
+        self.definition = None
 
     @abstractmethod
     def getSentenceAsList(self):
@@ -20,6 +22,8 @@ class DisambiquationInterface(metaclass=ABCMeta):
     @abstractmethod
     def setWord(self, word):
         self.word = word
+        self.sense = None
+        self.definition = None
 
     @abstractmethod
     def getWord(self):
@@ -37,4 +41,4 @@ class DisambiquationInterface(metaclass=ABCMeta):
         if self.sense is not None:
             return {'sense':self.sense.name(), 'description': self.definition}
         else:
-            return {}
+            return {'sense':None, 'description': None}
