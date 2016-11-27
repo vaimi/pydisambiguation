@@ -11,23 +11,11 @@ from nltk.corpus import stopwords
 
 
 class EuclideanPlus(DisambiquationInterface):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, settings):
+        super().__init__(settings)
         self.name = 'Euclidean+'
         self.description = ''
         self.translator = self.parseXsl("morphosemantic-links.xls")
-
-    def setSentence(self, sentenceList):
-        super().setSentence(sentenceList)
-
-    def getSentenceAsList(self):
-        return super().getSentenceAsList()
-
-    def setWord(self, word):
-        super().setWord(word)
-
-    def getWord(self):
-        return super().getWord()
 
     def mean(self, numberList):
         numberList = [0 if x is None else x for x in numberList]
@@ -51,17 +39,17 @@ class EuclideanPlus(DisambiquationInterface):
         return verb
 
 
-    def makeSense(self):
+    def makeSense(self, context, word):
         lemmatizer = WordNetLemmatizer()
-        self.sentence = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(self.sentence)])
-        self.word = ''.join(lemmatizer.lemmatize(self.word))
-        splitted = self.sentence.split(' ')
-        self.sentence = ' '.join([self.replaceByNoun(verb) for verb in self.sentence.split(' ')])
-        self.word = self.replaceByNoun(self.word)
-        words = word_tokenize(self.sentence)
+        context = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(context)])
+        word = ''.join(lemmatizer.lemmatize(word))
+        splitted = context.split(' ')
+        context = ' '.join([self.replaceByNoun(verb) for verb in context.split(' ')])
+        word = self.replaceByNoun(word)
+        words = word_tokenize(context)
         words = [word for word in words if word not in stopwords.words('english')]
         posWords = pos_tag(words, tagset='universal')
-        wordTag = pos_tag(word_tokenize(self.word), tagset='universal')
+        wordTag = pos_tag(word_tokenize(word), tagset='universal')
         sentenceWords = None
         pos = None
         if wordTag[0][1] == "NOUN":
@@ -74,7 +62,7 @@ class EuclideanPlus(DisambiquationInterface):
             return
         result = {}
 
-        wordSynsets = wn.synsets(self.word)
+        wordSynsets = wn.synsets(word)
 
         for synset in wordSynsets:
             midResult = []
@@ -90,8 +78,5 @@ class EuclideanPlus(DisambiquationInterface):
 
         result = sorted(result.items(), key=lambda x: x[1])
         if len(result) != 0:
-            self.sense = result[-1][0]
-            self.definition = result[-1][0].definition()
-
-    def getSenseDict(self):
-        return super().getSenseDict()
+            return result[-1][0]
+        return None

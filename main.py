@@ -5,8 +5,7 @@ import sys
 import logging
 from PyQt5.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QLineEdit,QTextEdit, QGridLayout, QApplication, QHBoxLayout, QRadioButton)
 from lesk import Lesk
-from euclidean import Euclidean
-from EuclideanPlus import EuclideanPlus
+from euclidean import EuclideanStandard, EuclideanPlus
 
 
 from nltk.corpus import semcor
@@ -33,7 +32,7 @@ class DisambiquateCore(object):
     def getAlgorithmInfo(self, key):
         if key in self.algorithms:
             info = self.algorithms[key].getAlgorithmInfo()
-            return {'key': key, 'name': info['name'], 'description': info['description']}
+            return {'key': key, 'name': info['name'], 'description': info['description'], 'parent':info['parent']}
         return {}
 
     def getAlgorithmsInfo(self):
@@ -41,13 +40,8 @@ class DisambiquateCore(object):
 
     def runAlgorithm(self, key, word, sentence):
         algorithm = self.algorithms[key]
-        algorithm.setWord(word)
-        algorithm.setSentence(sentence)
-        algorithm.makeSense()
-        result = algorithm.getSenseDict()
-        if result:
-            return {'algorithm':key, 'sense':result['sense'], 'description': result['description']}
-        return {}
+        result = algorithm.makeSense(sentence, word)
+        return {'algorithm':key, 'sense':result}
 
 class AlgorithmRadioButton(QRadioButton):
     def __init__(self, text, id):
@@ -170,7 +164,7 @@ class DisambiquateWindow(QWidget):
                 break
 
         if sense:
-            outText = "%s: %s" % (sense['sense'], sense['description'])
+            outText = "%s: %s" % (sense['sense'], sense['sense'].definition())
         else:
             outText = "Unable to make sense"
         logging.debug("Made sense: " + outText)
@@ -209,17 +203,17 @@ class dbTestRunner(object):
 
     def runTest(self, algorithmId, word, sentence, rightSense):
         sense = self.core.runAlgorithm(algorithmId, word, sentence)
-        if sense:
-            outText = "SENSE: %s: %s" % (sense['sense'], sense['description'])
+        if sense['sense']:
+            outText = "SENSE: %s: %s" % (sense['sense'], sense['sense'].definition())
         else:
             outText = "SENSE: Unable to make sense"
         testResult = None
-        if rightSense == sense['sense']:
-            self.algorithmscores[algorithmId]['correct'] += 1
-            testResult = 0
-        elif sense['sense'] is None:
+        if sense['sense'] is None:
             self.algorithmscores[algorithmId]['none'] += 1
             testResult = 2
+        elif rightSense == sense['sense'].name():
+            self.algorithmscores[algorithmId]['correct'] += 1
+            testResult = 0
         else:
             self.algorithmscores[algorithmId]['incorrect'] += 1
             testResult = 1
@@ -278,9 +272,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     app = QApplication(sys.argv)
     core = DisambiquateCore()
-    core.registerAlgorithm(Lesk(), 1)
-    core.registerAlgorithm(Euclidean(), 2)
-    core.registerAlgorithm(EuclideanPlus(), 3)
+    settings = {}
+    core.registerAlgorithm(Lesk(settings), 1)
+    core.registerAlgorithm(EuclideanStandard(settings), 2)
+    core.registerAlgorithm(EuclideanPlus(settings), 3)
     #dw = DisambiquateWindow(core)
     tester = dbTestRunner(core, "result.csv")
     tester.runTester(1000)

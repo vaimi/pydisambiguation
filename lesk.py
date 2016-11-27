@@ -4,31 +4,16 @@ from nltk.stem import PorterStemmer
 from itertools import chain
 
 class Lesk(DisambiquationInterface):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, settings):
+        super().__init__(settings)
         self.name = 'Lesk'
         self.description = ''
 
-    def setSentence(self, sentenceList):
-        super().setSentence(sentenceList)
-
-    def getSentenceAsList(self):
-        return super().getSentenceAsList()
-
-    def setWord(self, word):
-        super().setWord(word)
-
-    def getWord(self):
-        return super().getWord()
-
-    def makeSense(self):
-        sset = self.__parse(self.sentence, self.word)
+    def makeSense(self, context, word):
+        sset = self.__parse(context, word)
         if sset:
-            self.sense = sset
-            self.definition = sset.definition()
-
-    def getSenseDict(self):
-        return super().getSenseDict()
+            return sset
+        return None
 
     def __parse(self, context_sentence, ambiguous_word, pos=None, stem=True, hyperhypo=True):
         # Based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
