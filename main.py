@@ -3,10 +3,13 @@
 
 import sys
 import logging
-from PyQt5.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QLineEdit,QTextEdit, QGridLayout, QApplication, QHBoxLayout, QRadioButton)
-from lesk import Lesk
-from euclidean import EuclideanStandard, EuclideanPlus
+from PyQt5.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QComboBox, QLineEdit,QTextEdit, QGridLayout, QApplication, QHBoxLayout, QRadioButton)
+import os
+import inspect
+import imp
+import importlib
 
+from DisambiquationInterface import DisambiquationInterface
 
 from nltk.corpus import semcor
 import random
@@ -17,14 +20,47 @@ class DisambiquateCore(object):
     def __init__(self):
         self.algorithms = {}
 
-    def registerAlgorithm(self, algorithm, key):
+    def findAlgorithms(self):
+        #https://chriscoughlin.com/2012/04/writing-a-python-plugin-framework/
+        algorithms_folder = "./algorithms"
+        algorithms = []
+        if not algorithms_folder in sys.path:
+            sys.path.append(algorithms_folder)
+        for root, dirs, files in os.walk(algorithms_folder):
+            for module_file in files:
+                module_name, module_extension = os.path.splitext(module_file)
+                if module_extension == os.extsep + "py":
+                    plugin_module = importlib.import_module(module_name)
+                    plugin_classes = inspect.getmembers(plugin_module, inspect.isclass)
+                    for plugin_class in plugin_classes:
+                        if issubclass(plugin_class[1], DisambiquationInterface):
+                            if plugin_class[1].__module__ == module_name:
+                                #plugin = plugin_class[1]()
+                                algorithms.append(plugin_class)
+        return algorithms
+
+    def getAlgorithmInstance(self, plugin_name, algorithms = None):
+        """Given the name of a plugin, returns the plugin's class and an instance of the plugin,
+        or (None, None) if the plugin isn't listed in the available plugins."""
+        plugin_instance = None
+        available_plugins = self.findAlgorithms() if algorithms is None else algorithms 
+        plugin_names = [plugin[0] for plugin in available_plugins]
+        plugin_classes = [plugin[1] for plugin in available_plugins]
+        if plugin_name in plugin_names:
+            plugin_class = plugin_classes[plugin_names.index(plugin_name)]
+            plugin_instance = plugin_class(None)
+            #plugin_instance.data = self.data
+        return plugin_instance
+
+    def registerAlgorithm(self, algorithm, key=None):
+        key = len(self.algorithms)+1 if key is None else key
         if key not in self.algorithms and isinstance(key, int):
             if key >= 1:
                 self.algorithms[key] = algorithm
                 return key
         return False
 
-    def unregisterAlgorithm(self, algorithm, key):
+    def unregisterAlgorithm(self, algorithm):
         if self.algorithms.pop(key, None):
             return True
         return False
@@ -44,9 +80,10 @@ class DisambiquateCore(object):
         return {'algorithm':key, 'sense':result}
 
 class AlgorithmRadioButton(QRadioButton):
-    def __init__(self, text, id):
+    def __init__(self, text, id=None, group=None):
         super().__init__(text)
         self.algorithmId = id
+        self.group = group
 
 class DisambiquateWindow(QWidget):
     def __init__(self, core):
@@ -62,8 +99,16 @@ class DisambiquateWindow(QWidget):
     def __makeEditBox(self):
         return QLineEdit()
 
-    def __makeRadioButton(self, text, key):
-        return AlgorithmRadioButton(text, key)
+    def __makeRadioButton(self, text, key=None, group=None):
+        radiobutton = AlgorithmRadioButton(text, key, group)
+        radiobutton.clicked.connect(self.selectionChanged)
+        return radiobutton
+
+    def __makeComboBox(self, items):
+        comboBox = QComboBox()
+        [comboBox.addItem(algorithm['name'], algorithm['key']) for algorithm in items]
+        return comboBox
+
 
     def __makeHorizontalLine(self):
         hLine = QFrame()
@@ -74,6 +119,7 @@ class DisambiquateWindow(QWidget):
     def __initElements(self):
         self.gridLayout = QGridLayout()
         self.radioLayout = QHBoxLayout()
+        self.variantLayout = QHBoxLayout()
         self.buttonLayout = QHBoxLayout()
 
         # First row
@@ -86,8 +132,18 @@ class DisambiquateWindow(QWidget):
 
         # Third row
         self.methodLabel = self.__makeLabel('Method', '')
-        algorithms = core.getAlgorithmsInfo()
-        self.algorithmsRadioButtons = [self.__makeRadioButton(algorithm['name'], algorithm['key']) for algorithm in algorithms]
+
+        groups = list(set([algorithm['parent'] for algorithm in core.getAlgorithmsInfo() if algorithm['parent'] is not None]))
+        self.algorithmsRadioButtons = []
+        for group in groups:
+            info = group.getCollectionInfo()
+            self.algorithmsRadioButtons += [self.__makeRadioButton(info['name'] + ' (+)', None, group)]
+        self.algorithmsRadioButtons += [self.__makeRadioButton(algorithm['name'], algorithm['key']) for algorithm in core.getAlgorithmsInfo() if algorithm['parent'] is None]
+
+        #
+        self.variantLabel = self.__makeLabel('Variant', '')
+        self.variantComboBox = QComboBox()
+
 
         # Fourth row
         self.disambiquateButton = QPushButton("Disambiquate")
@@ -102,6 +158,7 @@ class DisambiquateWindow(QWidget):
     def __setElementSettings(self):
         self.outputEdit.setReadOnly(True)
         self.algorithmsRadioButtons[0].setChecked(True)
+        self.selectionChanged()
         self.disambiquateButton.clicked.connect(self.disambiquateButtonClicked)
         self.gridLayout.setSpacing(10)
 
@@ -125,6 +182,12 @@ class DisambiquateWindow(QWidget):
         self.radioLayout.addStretch(1)
 
         row += 1
+        self.gridLayout.addWidget(self.variantLabel, row, labelColumn)
+        self.gridLayout.addLayout(self.variantLayout, row, contentColumn)
+        self.variantLayout.addWidget(self.variantComboBox)
+        #self.variantLayout.addStretch(1)
+
+        row += 1
         self.gridLayout.addLayout(self.buttonLayout, row, contentColumn)
         self.buttonLayout.addWidget(self.disambiquateButton)
         self.buttonLayout.addStretch(1)
@@ -145,6 +208,16 @@ class DisambiquateWindow(QWidget):
         self.setWindowTitle('PyDisambiquate')
         self.show()
 
+    def selectionChanged(self):
+        self.variantComboBox.clear()
+        for button in self.algorithmsRadioButtons:
+            if button.isChecked():
+                if button.algorithmId == None:
+                    self.variantComboBox.setEnabled(True)
+                    [self.variantComboBox.addItem(algorithm['name'], algorithm['key']) for algorithm in core.getAlgorithmsInfo() if algorithm['parent'] is button.group]
+                else:
+                    self.variantComboBox.setDisabled(True)
+
     def disambiquateButtonClicked(self):
         logging.debug("Disambiquate button pressed")
         self.disambiquateButton.setDisabled(True)
@@ -160,10 +233,13 @@ class DisambiquateWindow(QWidget):
         sense = False
         for button in self.algorithmsRadioButtons:
             if button.isChecked():
-                sense = core.runAlgorithm(button.algorithmId, words, sentences)
-                break
-
-        if sense:
+                if button.group is None:
+                    sense = core.runAlgorithm(button.algorithmId, words, sentences)
+                    break
+                else:
+                    sense = core.runAlgorithm(self.variantComboBox.itemData(self.variantComboBox.currentIndex()), words, sentences)
+                    break
+        if sense['sense']:
             outText = "%s: %s" % (sense['sense'], sense['sense'].definition())
         else:
             outText = "Unable to make sense"
@@ -273,11 +349,14 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     core = DisambiquateCore()
     settings = {}
-    core.registerAlgorithm(Lesk(settings), 1)
-    core.registerAlgorithm(EuclideanStandard(settings), 2)
-    core.registerAlgorithm(EuclideanPlus(settings), 3)
-    #dw = DisambiquateWindow(core)
-    tester = dbTestRunner(core, "result.csv")
-    tester.runTester(1000)
+
+    algorithms = core.findAlgorithms()
+    [core.registerAlgorithm(core.getAlgorithmInstance(algorithm[0], algorithms)) for algorithm in algorithms]
+    #core.registerAlgorithm(Lesk(settings), 1)
+    #core.registerAlgorithm(EuclideanStandard(settings), 2)
+    #core.registerAlgorithm(EuclideanPlus(settings), 3)
+    dw = DisambiquateWindow(core)
+    #tester = dbTestRunner(core, "result.csv")
+    #tester.runTester(1000)
 
     sys.exit(app.exec_())
