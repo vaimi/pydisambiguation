@@ -1,109 +1,93 @@
-from external.pywsd3.lesk import simple_lesk
-from external.pywsd3.lesk import adapted_lesk
+from external.pywsd3.lesk import simple_lesk, adapted_lesk, cosine_lesk
+
 from external.pywsd3.similarity import max_similarity
-from DisambiquationInterface import DisambiquationInterface
-from AlgorithmCollection import AlgorithmCollection
 
-class PyWSD(AlgorithmCollection):
-    def __init__(self, settings):
-        super().__init__(settings)
+from interfaces.plugin import DisambiquationPlugin
+from interfaces.plugin_group import AlgorithmGroup
 
-    @classmethod
-    def getCollectionInfo(self):
-        return {'name': 'PyWSD', 'description':''}
+class PyWSD(DisambiquationPlugin):
+    parent = AlgorithmGroup("PyWSD", "Group for PyWsd similarity algorithms")
 
-class PyWSDSimpleLesk(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Simple Lesk'
-        self.description = ''
-        self.parent = PyWSD
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSD, self).__init__(name, description, settings, parent)
 
-    def makeSense(self, context, word):
-    	return simple_lesk(context,word)
+class PyWSDSimpleLesk(PyWSD):
+    name = "Simple Lesk"
 
-class PyWSDAdaptedLesk(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Adapted Lesk'
-        self.description = ''
-        self.parent = PyWSD
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDSimpleLesk, self).__init__(name, description, settings, parent)
 
-    def makeSense(self, context, word):
-    	return adapted_lesk(context,word)
+    def run(self):
+        return simple_lesk(self.context, self.word)
 
-class PyWSDCosineLesk(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Cosine Lesk'
-        self.description = ''
-        self.parent = PyWSD
+class PyWSDAdaptedLesk(PyWSD):
+    name = "Adapted Lesk"
 
-    def makeSense(self, context, word):
-    	return cosine_lesk(context,word)
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDAdaptedLesk, self).__init__(name, description, settings, parent)
 
-class PyWSDPathSimilarity(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Path similarity'
-        self.description = ''
-        self.parent = PyWSD
+    def run(self):
+        return adapted_lesk(self.context, self.word)
 
-    def makeSense(self, context, word):
-    	return max_similarity(context, word, "path")
+class PyWSDCosineLesk(PyWSD):
+    name = "Cosine Lesk"
 
-class PyWSDLchSimilarity(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Path similarity'
-        self.description = ''
-        self.parent = PyWSD
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDCosineLesk, self).__init__(name, description, settings, parent)
 
-    def makeSense(self, context, word):
-    	return max_similarity(context, word, "lch")
+    def run(self):
+        return cosine_lesk(self.context, self.word) 
 
-class PyWSDWupSimilarity(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Path similarity'
-        self.description = ''
-        self.parent = PyWSD
+class PyWSDPathSimilarity(PyWSD):
+    name = "Path similarity"
 
-    def makeSense(self, context, word):
-    	return max_similarity(context, word, "wup")
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDPathSimilarity, self).__init__(name, description, settings, parent)
 
-class PyWSDResSimilarity(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Path similarity'
-        self.description = ''
-        self.parent = PyWSD
+    def run(self):
+        return max_similarity(self.context, self.word, "path")
 
-    def makeSense(self, context, word):
-    	return max_similarity(context, word, "res")
+class PyWSDLchSimilarity(PyWSD):
+    name = "Lch similarity"
 
-class PyWSDJcnSimilarity(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Path similarity'
-        self.description = ''
-        self.parent = PyWSD
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDLchSimilarity, self).__init__(name, description, settings, parent)
 
-    def makeSense(self, context, word):
-    	return max_similarity(context, word, "jcn")
+    def run(self):
+        return max_similarity(self.context, self.word, "lch")
 
-class PyWSDLinSimilarity(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Path similarity'
-        self.description = ''
-        self.parent = PyWSD
+class PyWSDWupSimilarity(PyWSD):
+    name = "Wup similarity"
 
-    def makeSense(self, context, word):
-    	return max_similarity(context, word, "lin")
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDWupSimilarity, self).__init__(name, description, settings, parent)
 
+    def run(self):
+        return max_similarity(self.context, self.word, "wup")
 
+class PyWSDResSimilarity(PyWSD):
+    name = "Res similarity"
 
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDResSimilarity, self).__init__(name, description, settings, parent)
 
+    def run(self):
+        return max_similarity(self.context, self.word, "res")
 
+class PyWSDJcnSimilarity(PyWSD):
+    name = "Jcn Similarity"
 
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDJcnSimilarity, self).__init__(name, description, settings, parent)
+
+    def run(self):
+        return max_similarity(self.context, self.word, "jcn")
+
+class PyWSDLinSimilarity(PyWSD):
+    name = "Lin similarity"
+
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(PyWSDLinSimilarity, self).__init__(name, description, settings, parent)
+
+    def run(self):
+        return max_similarity(self.context, self.word, "lin")

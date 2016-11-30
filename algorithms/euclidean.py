@@ -3,24 +3,24 @@ from nltk.stem import PorterStemmer
 from itertools import chain
 from nltk import word_tokenize, pos_tag, defaultdict
 from nltk.wsd import lesk
-from DisambiquationInterface import DisambiquationInterface
-from AlgorithmCollection import AlgorithmCollection
+
+from interfaces.plugin import DisambiquationPlugin
+from interfaces.plugin_group import AlgorithmGroup
+
 import xlrd
 from xlrd.sheet import ctype_text
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 from nltk.corpus import stopwords
 
-class Euclidean(AlgorithmCollection):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Euclidean'
-        self.description = ''
+class Euclidean(DisambiquationPlugin):
+    """Parent for Euclidean plugins. Provides common methods for child algorithms.
+    Note that this class doesn't have run method so it's not directly
+    initializeable"""
+    parent = AlgorithmGroup("Euclidean", "Group for euclidean algorithms")
 
-    @classmethod
-    def getCollectionInfo(self):
-        return {'name': 'Euclidean', 'description':''}
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(Euclidean, self).__init__(name, description, settings, parent)
 
-    @classmethod
     def getMeaningfulWords(self, context, word):
         tokenizedContext = [word for word in word_tokenize(context) if word not in stopwords.words('english')]
 
@@ -37,7 +37,6 @@ class Euclidean(AlgorithmCollection):
             return ([], pos)
         return (meaningfulWords, pos)
 
-    @classmethod
     def calculateEuclideanSimilarity(self, contextWordsList, word, pos):
         wordSynsets = wn.synsets(word)
         result = {}
@@ -54,45 +53,42 @@ class Euclidean(AlgorithmCollection):
             result[synset] = self.mean(midResult)
         return result
 
-    @classmethod
     def getClosestSense(self, scores):
         result = sorted(scores.items(), key=lambda x: x[1])
         if len(result) != 0:
             return result[-1][0]
         return
 
-    @classmethod
     def mean(self, numberList):
         numberList = [0 if x is None else x for x in numberList]
         return float(sum(numberList)) / max(len(numberList), 1)
 
 
+class EuclideanStandard(Euclidean):
+    """Euclidean algorithm implementation for PyDisambiquation"""
+    name = "Standard Euclidean"
+    description = "Standard implementation for euclidean algorithm"
+    
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(Euclidean, self).__init__(name, description, settings, parent)
 
-
-class EuclideanStandard(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Standard Euclidean'
-        self.description = ''
-        self.parent = Euclidean
-
-    def makeSense(self, context, word):
+    def run(self):
         lemmatizer = WordNetLemmatizer()
-        context = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(context)])
-        word = ''.join(lemmatizer.lemmatize(word))
-        (meaningfulWords, pos) = Euclidean.getMeaningfulWords(context, word)
+        context = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(self.context)])
+        word = ''.join(lemmatizer.lemmatize(self.word))
+        (meaningfulWords, pos) = super(EuclideanStandard,self).getMeaningfulWords(context, word)
         if not len(meaningfulWords):
             return
-        scores = Euclidean.calculateEuclideanSimilarity(meaningfulWords, word, pos)
-        return Euclidean.getClosestSense(scores)
+        scores = super(EuclideanStandard,self).calculateEuclideanSimilarity(meaningfulWords, word, pos)
+        return super(EuclideanStandard,self).getClosestSense(scores)
 
-class EuclideanPlus(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Euclidean+'
-        self.description = ''
-        self.parent = Euclidean
-        self.translator = self.parseXsl("morphosemantic-links.xls")
+class EuclideanPlus(Euclidean):
+    name = "Euclidian + morphosemantic"
+    description = "Euclidean with morphosemantic translator"
+    
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(Euclidean, self).__init__(name, description, settings, parent)
+        self.translator = self.parseXsl("morphosemantic-links.xls")    
 
     def parseXsl(self, fname):
         f = xlrd.open_workbook(fname)
@@ -111,19 +107,16 @@ class EuclideanPlus(DisambiquationInterface):
             return self.translator[verb]
         return verb
 
-    def makeSense(self, context, word):
+    def run(self):
         lemmatizer = WordNetLemmatizer()
-        context = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(context)])
-        word = ''.join(lemmatizer.lemmatize(word))
+        context = ' '.join([lemmatizer.lemmatize(w) for w in word_tokenize(self.context)])
+        word = ''.join(lemmatizer.lemmatize(self.word))
 
         context = ' '.join([self.replaceByNoun(verb) for verb in context.split(' ')])
         word = self.replaceByNoun(word)
 
-        (meaningfulWords, pos) = Euclidean.getMeaningfulWords(context, word)
+        (meaningfulWords, pos) = super(EuclideanPlus,self).getMeaningfulWords(context, word)
         if not len(meaningfulWords):
             return
-        scores = Euclidean.calculateEuclideanSimilarity(meaningfulWords, word, pos)
-        return Euclidean.getClosestSense(scores)
-
-
-
+        scores = super(EuclideanPlus,self).calculateEuclideanSimilarity(meaningfulWords, word, pos)
+        return super(EuclideanPlus,self).getClosestSense(scores)

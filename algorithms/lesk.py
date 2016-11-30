@@ -1,22 +1,31 @@
-from DisambiquationInterface import DisambiquationInterface
+from interfaces.plugin import DisambiquationPlugin
 from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
 from itertools import chain
 
-class Lesk(DisambiquationInterface):
-    def __init__(self, settings):
-        super().__init__(settings)
-        self.name = 'Lesk'
-        self.description = ''
+class Lesk(DisambiquationPlugin):
+    """Basic lesk implementation for PyDisambiquation"""
+    name = "Lesk"
+    description = "Basic lesk implementation"
+    parent = None
+    initializeable = True
 
-    def makeSense(self, context, word):
-        sset = self.__parse(context, word)
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(Lesk, self).__init__(name, description, settings, parent)
+
+    def run(self):
+        pos = None if not "pos" in self.settings else self.settings['pos']
+        stem = True if not "stem" in self.settings else self.settings['stem']
+        hyperhypo = True if not "hyperhypo" in self.settings else self.settings['hyperhypo']
+        if not self.context or not self.word:
+            return None
+        sset = self.__parse(self.context, self.word, pos, stem, hyperhypo)
         if sset:
             return sset
         return None
 
     def __parse(self, context_sentence, ambiguous_word, pos=None, stem=True, hyperhypo=True):
-        # Based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
+        # Heavily based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
         ps = PorterStemmer()
 
         max_overlaps = 0; lesk_sense = None
