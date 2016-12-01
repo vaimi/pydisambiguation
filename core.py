@@ -8,7 +8,7 @@ class DisambiquateCore(object):
     def __init__(self):
         self.algorithms = {}
 
-    def findAlgorithms(self):
+    def findAlgorithms(self, include, exclude):
         #https://chriscoughlin.com/2012/04/writing-a-python-plugin-framework/
         algorithms_folder = "./algorithms"
         algorithms = []
@@ -23,7 +23,14 @@ class DisambiquateCore(object):
                     for plugin_class in plugin_classes:
                         if issubclass(plugin_class[1], AbstractPlugin):
                             if plugin_class[1].__module__ == module_name:
-                                algorithms.append(plugin_class)
+                                if len(include):
+                                    if plugin_class[0] in include:
+                                        algorithms.append(plugin_class)
+                                    elif len(list(set([parent.__name__ for parent in inspect.getmro(plugin_class[1])]) & set(include))):
+                                        algorithms.append(plugin_class)
+                                    continue
+                                if plugin_class[0] not in exclude:
+                                    algorithms.append(plugin_class)
         return algorithms
 
     def getAlgorithmInstance(self, plugin_name, algorithms = None):

@@ -60,11 +60,13 @@ class DisambiquateWindow(QFrame):
         # Third row
         self.methodLabel = self.__makeLabel('Method', '')
 
-        groups = list(set([algorithm['parent'] for algorithm in self.core.getAlgorithmsInfo() if algorithm['parent'] is not None]))
+        groupsList = [algorithm['parent'] for algorithm in self.core.getAlgorithmsInfo() if algorithm['parent'] is not None]
+        groupsDict = dict((group,groupsList.count(group)) for group in set(groupsList))
+        groups = [group for group in groupsDict if groupsDict[group] > 1]
         self.algorithmsRadioButtons = []
         for group in groups:
             self.algorithmsRadioButtons += [self.__makeRadioButton(group.name + ' (+)', None, group)]
-        self.algorithmsRadioButtons += [self.__makeRadioButton(algorithm['name'], algorithm['key']) for algorithm in self.core.getAlgorithmsInfo() if algorithm['parent'] is None]
+        self.algorithmsRadioButtons += [self.__makeRadioButton(algorithm['name'], algorithm['key']) for algorithm in self.core.getAlgorithmsInfo() if algorithm['parent'] is None or algorithm['parent'] not in groups]
 
         #
         self.variantLabel = self.__makeLabel('Variant', '')

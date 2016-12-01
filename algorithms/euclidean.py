@@ -88,7 +88,7 @@ class EuclideanPlus(Euclidean):
     
     def __init__(self, name=None, description=None, settings=None, parent=None):
         super(Euclidean, self).__init__(name, description, settings, parent)
-        self.translator = self.parseXsl("morphosemantic-links.xls")    
+        self.translator = self.parseXsl("external/morphosemantic-links.xls")    
 
     def parseXsl(self, fname):
         f = xlrd.open_workbook(fname)
