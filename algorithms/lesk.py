@@ -1,37 +1,31 @@
-from DisambiquationInterface import DisambiquationInterface
+from interfaces.plugin import DisambiquationPlugin
 from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
 from itertools import chain
 
-class Lesk(DisambiquationInterface):
-    def __init__(self):
-        super().__init__()
-        self.name = 'Lesk'
-        self.description = ''
+class Lesk(DisambiquationPlugin):
+    """Basic lesk implementation for PyDisambiquation"""
+    name = "Lesk"
+    description = "Basic lesk implementation"
+    parent = None
+    initializeable = True
 
-    def setSentence(self, sentenceList):
-        super().setSentence(sentenceList)
+    def __init__(self, name=None, description=None, settings=None, parent=None):
+        super(Lesk, self).__init__(name, description, settings, parent)
 
-    def getSentenceAsList(self):
-        return super().getSentenceAsList()
-
-    def setWord(self, word):
-        super().setWord(word)
-
-    def getWord(self):
-        return super().getWord()
-
-    def makeSense(self):
-        sset = self.__parse(self.sentence, self.word)
+    def run(self):
+        pos = None if not "pos" in self.settings else self.settings['pos']
+        stem = True if not "stem" in self.settings else self.settings['stem']
+        hyperhypo = True if not "hyperhypo" in self.settings else self.settings['hyperhypo']
+        if not self.context or not self.word:
+            return None
+        sset = self.__parse(self.context, self.word, pos, stem, hyperhypo)
         if sset:
-            self.sense = sset
-            self.definition = sset.definition()
-
-    def getSenseDict(self):
-        return super().getSenseDict()
+            return sset
+        return None
 
     def __parse(self, context_sentence, ambiguous_word, pos=None, stem=True, hyperhypo=True):
-        # Based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
+        # Heavily based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
         ps = PorterStemmer()
 
         max_overlaps = 0; lesk_sense = None
