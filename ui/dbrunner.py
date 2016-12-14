@@ -1,4 +1,5 @@
 from nltk.corpus import semcor
+from nltk.corpus import stopwords
 from nltk import word_tokenize, pos_tag
 from nltk.tree import Tree
 import random
@@ -151,17 +152,20 @@ class DbRunner(object):
                 if word.label() is not None and not isinstance(word.label(), str) and len(word.leaves()) == 1:
                     wordSynset = word.label().synset().name()
                     wordString = ' '.join(word.leaves())
+                    if wordString in stopwords.words('english'):
+                        continue
                     pos = word.pos()
                     if pos[0][1] == 'NN':
                         if ncount < self.half:
                             ncount += 1
                             break
                     elif pos[0][1] == 'VB':
-                        if ncount < self.half:
+                        if vcount < self.half:
                             vcount += 1
                             break
             if pos[0][1] not in ['NN', 'VB']:
                 continue
+
             message = "Disambiquate %s \"%s\" using \"%s\"\n" % (pos[0][1], wordString, sentenceString)
             print(message)
             #print("Running algorithm: ")
