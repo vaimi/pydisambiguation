@@ -10,6 +10,11 @@ import xlrd
 from xlrd.sheet import ctype_text
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import euclidean_distances
 
 from itertools import chain
 
@@ -38,34 +43,43 @@ class Euclidean(DisambiquationPlugin):
             return ([], pos)
         return (meaningfulWords, pos)
 
-    def calculatePathSimilarity(self, sense1, sense2):
-        response = sense1.path_similarity(sense2)
-        if response:
-            return response
-        return 0
-
-    def calculateEuclideanSimilarity(self, contextWordsList, word, pos):
-        wordSynsets = wn.synsets(word)
-        result = {}
-        for ss in wordSynsets:
-            result[ss] = sum(max([self.calculatePathSimilarity(ss,k) for k in wn.synsets(j)] + [0]) for j in contextWordsList)
-        return result
-
-    def getClosestSense(self, scores):
-        result = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        if len(result) != 0:
-            return result[0][0]
-        return
-
-    def mean(self, numberList):
-        numberList = [0 if x is None else x for x in numberList]
-        return float(sum(numberList)) / max(len(numberList), 1)
-
+    def doEuclidean(self, word, context):
+        vectorizer = TfidfVectorizer()
+        senses = wn.synsets(word)
+        sensesDefinitions = [ss.definition() for ss in senses]
+        tfIdf = vectorizer.fit_transform([' '.join(context)] + sensesDefinitions)
+        result = euclidean_distances(tfIdf[0:1], tfIdf)
+        resultList = result.tolist()
+        best = 0
+        bestI = 0
+        for i in range(1,len(resultList[0])):
+            if best < resultList[0][i]:
+                bestI = i
+                best = resultList[0][i]
+            elif best == resultList[0][i]:
+                bestI = 0
+        if bestI == 0:
+            return None
+        return(senses[bestI-1])
 
 class EuclideanStandard(Euclidean):
     """Euclidean algorithm implementation for PyDisambiquation"""
     name = "Standard Euclidean"
     description = "Standard implementation for euclidean algorithm"
+
+    token_dict = {}
+    stemmer = PorterStemmer()
+
+    def stem_tokens(tokens, stemmer):
+        stemmed = []
+        for item in tokens:
+            stemmed.append(stemmer.stem(item))
+        return stemmed
+
+    def tokenize(text):
+        tokens = nltk.word_tokenize(text)
+        stems = stem_tokens(tokens, stemmer)
+        return stems
     
     def __init__(self, name=None, description=None, settings=None, parent=None):
         super(Euclidean, self).__init__(name, description, settings, parent)
@@ -74,11 +88,8 @@ class EuclideanStandard(Euclidean):
     def run(self):
         word = self.lemmatizer.lemmatize(self.word)
         context = [self.lemmatizer.lemmatize(w) for w in self.context]
-        (meaningfulWords, pos) = super(EuclideanStandard,self).getMeaningfulWords(context, word)
-        if not len(meaningfulWords):
-            return
-        scores = super(EuclideanStandard,self).calculateEuclideanSimilarity(meaningfulWords, word, pos)
-        return super(EuclideanStandard,self).getClosestSense(scores)
+        return(super(EuclideanStandard, self).doEuclidean(word, context))
+        
 
 class EuclideanPlus(Euclidean):
     name = "Euclidian + morphosemantic"
@@ -116,8 +127,4 @@ class EuclideanPlus(Euclidean):
         word = self.replaceByNoun(word)
         word = word[0]
 
-        (meaningfulWords, pos) = super(EuclideanPlus,self).getMeaningfulWords(context, word)
-        if not len(meaningfulWords):
-            return
-        scores = super(EuclideanPlus,self).calculateEuclideanSimilarity(meaningfulWords, word, pos)
-        return super(EuclideanPlus,self).getClosestSense(scores)
+        return(super(EuclideanPlus, self).doEuclidean(word, context))

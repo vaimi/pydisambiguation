@@ -26,6 +26,7 @@ class DbRunner(object):
     def __init__(self, core, iterations=100, databaseStr="semcor", outputPath="report.txt", debugOutputPath=None):
         self.core = core
         self.iterations = iterations
+        self.half = iterations/2
         class_ = getattr(sys.modules[__name__], databaseStr)
         self.dbStr = databaseStr
         self.db = class_
@@ -36,7 +37,7 @@ class DbRunner(object):
         algorithms = self.core.getAlgorithmsInfo()
         self.algorithmscores = {}
         for algorithm in algorithms:
-            self.algorithmscores[algorithm['key']] = {'correct':0, 'incorrect':0, 'none':0, 'runtime':0}
+            self.algorithmscores[algorithm['key']] = {'n.correct':0, 'n.incorrect':0, 'v.correct':0, 'v.incorrect':0, 'v.none':0, 'n.none':0, 'runtime':0}
 
     def setupFormatter(self):
         i = datetime.datetime.now()
@@ -50,12 +51,18 @@ class DbRunner(object):
 
     def algorithmResultFormatter(self, algorithmId, algorithmScore):
         info = self.core.getAlgorithmInfo(algorithmId)
-        accuracy = 1 if algorithmScore['incorrect'] == 0 else algorithmScore['correct']/(algorithmScore['incorrect']+algorithmScore['correct'])
-        recall = algorithmScore['correct']/(algorithmScore['incorrect']+algorithmScore['correct']+algorithmScore['none'])
+        nall = algorithmScore['n.incorrect']+algorithmScore['n.correct']+algorithmScore['n.none']
+        vall = (algorithmScore['v.incorrect']+algorithmScore['v.correct']+algorithmScore['v.none'])
+        naccuracy = 1 if algorithmScore['n.incorrect'] == 0 else algorithmScore['n.correct']/(nall - algorithmScore['n.none'])
+        nrecall = 0 if nall == 0 else algorithmScore['n.correct']/nall
+        vaccuracy = 1 if algorithmScore['v.incorrect'] == 0 else algorithmScore['v.correct']/(vall - algorithmScore['v.none'])
+        vrecall = 0 if vall == 0 else algorithmScore['v.correct']/vall
         response = "Algorithm ID: %s\n" % algorithmId
         response += "Algorithm name: %s\n" % info['name']
-        response += "Accuracy: %.2f\n" % accuracy
-        response += "Recall: %.2f\n" % recall
+        response += "Noun precision: %.2f\n" % naccuracy
+        response += "Noun recall: %.2f\n" % nrecall
+        response += "Verb precision: %.2f\n" % vaccuracy
+        response += "Verb recall: %.2f\n" % vrecall
         response += "Average runtime: %.4f\n" % (algorithmScore['runtime']/self.iterations)
         response += "Raw: %s\n\n" % algorithmScore
         return response
@@ -77,7 +84,7 @@ class DbRunner(object):
                 for line in self.result:
                     file.write(line)
 
-    def runTest(self, algorithmId, word, sentence, rightSense):
+    def runTest(self, algorithmId, word, sentence, rightSense, wordTag):
         t1 = datetime.datetime.now()
         sense = self.core.runAlgorithm(algorithmId, word, sentence)
         t2 = datetime.datetime.now()
@@ -89,13 +96,22 @@ class DbRunner(object):
             outText = "SENSE: Unable to make sense"
         testResult = None
         if sense['sense'] is None:
-            self.algorithmscores[algorithmId]['none'] += 1
+            if wordTag == 'NN':
+                self.algorithmscores[algorithmId]['n.none'] += 1
+            elif wordTag == 'VB':
+                self.algorithmscores[algorithmId]['v.none'] += 1
             testResult = 2
         elif rightSense == sense['sense'].name():
-            self.algorithmscores[algorithmId]['correct'] += 1
+            if wordTag == 'NN':
+                self.algorithmscores[algorithmId]['n.correct'] += 1
+            elif wordTag == 'VB':
+                self.algorithmscores[algorithmId]['v.correct'] += 1
             testResult = 0
         else:
-            self.algorithmscores[algorithmId]['incorrect'] += 1
+            if wordTag == 'NN':
+                self.algorithmscores[algorithmId]['n.incorrect'] += 1
+            elif wordTag == 'VB':
+                self.algorithmscores[algorithmId]['v.incorrect'] += 1
             testResult = 1
 
         row = "%s, %s, %s, %s, %s, %s\n" % (algorithmId, testResult, word, sentence, sense['sense'], rightSense)
@@ -110,6 +126,8 @@ class DbRunner(object):
         currFile = files.pop()
         currSent = None
         fcList = []
+        ncount = 0
+        vcount = 0
         while len(files) != 0:
             if curRun == self.iterations:
                 break
@@ -125,7 +143,7 @@ class DbRunner(object):
                         sentence.append(word.leaves())
                     else:
                         sentence.append([word])
-            if len(sentence) < 20:
+            if len(sentence) < 10:
                 continue
             sentenceString = ' '.join([j for i in sentence for j in i])
             while len(sentPop) != 0:
@@ -133,15 +151,23 @@ class DbRunner(object):
                 if word.label() is not None and not isinstance(word.label(), str) and len(word.leaves()) == 1:
                     wordSynset = word.label().synset().name()
                     wordString = ' '.join(word.leaves())
-                    wordTag = pos_tag(word_tokenize(wordString), tagset='universal')
-                    if wordTag[0][1] == "NOUN" or wordTag[0][1] == "VERB":
-                        break
-            message = "Disambiquate \"%s\" using \"%s\"\n" % (wordString, sentenceString)
+                    pos = word.pos()
+                    if pos[0][1] == 'NN':
+                        if ncount < self.half:
+                            ncount += 1
+                            break
+                    elif pos[0][1] == 'VB':
+                        if ncount < self.half:
+                            vcount += 1
+                            break
+            if pos[0][1] not in ['NN', 'VB']:
+                continue
+            message = "Disambiquate %s \"%s\" using \"%s\"\n" % (pos[0][1], wordString, sentenceString)
             print(message)
             #print("Running algorithm: ")
             for algorithm in self.core.getAlgorithmsInfo():
                 print(str(algorithm['key']))
-                self.runTest(algorithm['key'], wordString, sentenceString, wordSynset)
+                self.runTest(algorithm['key'], wordString, sentenceString, wordSynset, pos[0][1])
             curRun+=1
         self.writeResults()
 

@@ -1,12 +1,24 @@
 from abc import ABCMeta, abstractproperty
 
 class AbstractGroup(metaclass=ABCMeta):
+    """Abstract definition for group of something
+    """
     @abstractproperty
     def name(self):
+        """Group name
+        
+        Returns:
+            str: Group name
+        """
         pass
 
     @abstractproperty
     def description(self):
+        """Group description
+        
+        Returns:
+            str: Group description
+        """
         pass
 
 class AlgorithmGroup(AbstractGroup):
