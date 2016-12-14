@@ -3,6 +3,7 @@ import os
 import inspect
 import importlib
 from interfaces.plugin import DisambiquationPlugin, AbstractPlugin
+import nltk
 
 class DisambiquateCore(object):
     def __init__(self):
@@ -26,7 +27,7 @@ class DisambiquateCore(object):
                                 if len(include):
                                     if plugin_class[0] in include:
                                         algorithms.append(plugin_class)
-                                    elif len(list(set([parent.__name__ for parent in inspect.getmro(plugin_class[1])]) & set(include))):
+                                    elif set([parent.__name__ for parent in inspect.getmro(plugin_class[1])]) & set(include):
                                         algorithms.append(plugin_class)
                                     continue
                                 if plugin_class[0] not in exclude:
@@ -75,7 +76,14 @@ class DisambiquateCore(object):
 
     def runAlgorithm(self, key, word, sentence):
         algorithm = self.algorithms[key]
-        algorithm.context = sentence
+        pattern = r'''(?x)          # set flag to allow verbose regexps
+            (?:[A-Z]\.)+        # abbreviations, e.g. U.S.A.
+          | \w+(?:-\w+)*        # words with optional internal hyphens
+          | \$?\d+(?:\.\d+)?%?  # currency and percentages, e.g. $12.40, 82%
+          | \.\.\.              # ellipsis
+          | [][.,;"'?():_`-]    # these are separate tokens; includes ], [
+        '''
+        algorithm.context = nltk.regexp_tokenize(sentence, pattern)
         algorithm.word = word
         result = algorithm.run()
         return {'algorithm':key, 'sense':result}

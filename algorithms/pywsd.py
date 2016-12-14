@@ -12,6 +12,15 @@ class PyWSD(DisambiquationPlugin):
 
     def __init__(self, name=None, description=None, settings=None, parent=None):
         super(PyWSD, self).__init__(name, description, settings, parent)
+        self._context = None
+
+    @property
+    def context(self):
+        return self._context
+
+    @context.setter
+    def context(self, newContext):
+        self._context = ' '.join(newContext)
 
 class PyWSDSimpleLesk(PyWSD):
     name = "Simple Lesk"
@@ -57,11 +66,10 @@ class PyWSDPathSimilarity(PyWSD):
 
     def run(self):
         try:
-            return max_similarity(self.context, self.word, "path")
-        except TypeError:
+            return max_similarity(self.context, self.word, option="path")
+        except:
             return None
-        except nltk.corpus.reader.wordnet.WordNetError:
-            return None
+
 
 class PyWSDLchSimilarity(PyWSD):
     name = "Lch similarity"
@@ -71,10 +79,8 @@ class PyWSDLchSimilarity(PyWSD):
 
     def run(self):
         try:
-            return max_similarity(self.context, self.word, "lch")
-        except TypeError:
-            return None
-        except nltk.corpus.reader.wordnet.WordNetError:
+            return max_similarity(self.context, self.word, option="lch")
+        except:
             return None
 
 class PyWSDWupSimilarity(PyWSD):
@@ -85,10 +91,8 @@ class PyWSDWupSimilarity(PyWSD):
 
     def run(self):
         try:
-            return max_similarity(self.context, self.word, "wup")
-        except TypeError:
-            return None
-        except nltk.corpus.reader.wordnet.WordNetError:
+            return max_similarity(self.context, self.word, pos="n", option="wup")
+        except:
             return None
 
 class PyWSDResSimilarity(PyWSD):
@@ -99,10 +103,8 @@ class PyWSDResSimilarity(PyWSD):
 
     def run(self):
         try:
-            return max_similarity(self.context, self.word, "res")
-        except TypeError:
-            return None
-        except nltk.corpus.reader.wordnet.WordNetError:
+            return max_similarity(self.context, self.word, option="res")
+        except:
             return None
 
 class PyWSDJcnSimilarity(PyWSD):
@@ -113,10 +115,8 @@ class PyWSDJcnSimilarity(PyWSD):
 
     def run(self):
         try:
-            return max_similarity(self.context, self.word, "jcn")
-        except TypeError:
-            return None
-        except nltk.corpus.reader.wordnet.WordNetError:
+            return max_similarity(self.context, self.word, option="jcn")
+        except:
             return None
 
 class PyWSDLinSimilarity(PyWSD):
@@ -127,8 +127,6 @@ class PyWSDLinSimilarity(PyWSD):
 
     def run(self):
         try:
-            return max_similarity(self.context, self.word, "lin")
-        except TypeError:
-            return None
-        except nltk.corpus.reader.wordnet.WordNetError:
+            return max_similarity(self.context, self.word, option="lin")
+        except:
             return None

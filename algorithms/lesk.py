@@ -29,7 +29,7 @@ class Lesk(DisambiquationPlugin):
         ps = PorterStemmer()
 
         max_overlaps = 0; lesk_sense = None
-        context_sentence = context_sentence.split()
+        #context_sentence = context_sentence.split()
         for ss in wn.synsets(ambiguous_word):
             # If POS is specified.
             if pos and ss.pos is not pos:

@@ -33,7 +33,6 @@ if __name__ == '__main__':
     dbSettings.add_argument("-dr", "--debugreport", type=str, help="Optional debug dump path (csv)")
 
     args = parser.parse_args()
-    print(args)
     
     core = DisambiquateCore()
     args.include = [] if args.include is None else args.include

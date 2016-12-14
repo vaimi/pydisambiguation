@@ -1,5 +1,6 @@
 from nltk.corpus import semcor
 from nltk import word_tokenize, pos_tag
+from nltk.tree import Tree
 import random
 import sys
 import datetime
@@ -49,14 +50,12 @@ class DbRunner(object):
 
     def algorithmResultFormatter(self, algorithmId, algorithmScore):
         info = self.core.getAlgorithmInfo(algorithmId)
-        accuracy = 1 if algorithmScore['incorrect'] == 0 else algorithmScore['correct']/algorithmScore['incorrect']
+        accuracy = 1 if algorithmScore['incorrect'] == 0 else algorithmScore['correct']/(algorithmScore['incorrect']+algorithmScore['correct'])
         recall = algorithmScore['correct']/(algorithmScore['incorrect']+algorithmScore['correct']+algorithmScore['none'])
         response = "Algorithm ID: %s\n" % algorithmId
         response += "Algorithm name: %s\n" % info['name']
         response += "Accuracy: %.2f\n" % accuracy
         response += "Recall: %.2f\n" % recall
-        print(type(algorithmScore['runtime']))
-        print(type(self.iterations))
         response += "Average runtime: %.4f\n" % (algorithmScore['runtime']/self.iterations)
         response += "Raw: %s\n\n" % algorithmScore
         return response
@@ -104,6 +103,7 @@ class DbRunner(object):
 
     def run(self):
         files = self.db.fileids()
+        random.seed()
         random.shuffle(files)
 
         curRun = 0
@@ -115,16 +115,16 @@ class DbRunner(object):
                 break
             if len(fcList) == 0:
                 currFile = files.pop()
-                fc = semcor.tagged_sents(fileids=currFile, tag='both')
+                fc = self.db.tagged_sents(fileids=currFile, tag='both')
                 fcList = list(fc)
             sentence = []
             sentPop = fcList.pop()
             for sent in sentPop:
                 for word in sent:
-                    try:
+                    if type(word) is Tree:
                         sentence.append(word.leaves())
-                    except AttributeError:
-                        pass
+                    else:
+                        sentence.append([word])
             if len(sentence) < 20:
                 continue
             sentenceString = ' '.join([j for i in sentence for j in i])
@@ -138,9 +138,23 @@ class DbRunner(object):
                         break
             message = "Disambiquate \"%s\" using \"%s\"\n" % (wordString, sentenceString)
             print(message)
-            print("Running algorithm: ")
+            #print("Running algorithm: ")
             for algorithm in self.core.getAlgorithmsInfo():
                 print(str(algorithm['key']))
                 self.runTest(algorithm['key'], wordString, sentenceString, wordSynset)
             curRun+=1
+        self.writeResults()
+
+    def exampleRun(self):
+
+        examples = [
+            ("bass", "freshwater_bass.n.01", '"Though still a far cry from the lake’s record 52-pound bass of a decade ago, “you could fillet these fish again, and that made people very, very happy.” Mr. Paulson says'),
+            ("bass", "bass.n.07", 'An electric guitar and bass player stand off to one side, not really part of the scene, just as a sort of nod to gringo expectations again.'),
+            ("cold", "cold.n.03", "She shivered from the cold"),
+            ("cold", "cold.n.01", "I am taking aspirin for my cold")
+        ]
+
+        for example in examples:
+            for algorithm in self.core.getAlgorithmsInfo():
+                self.runTest(algorithm['key'], example[0], example[2], example[1])
         self.writeResults()
