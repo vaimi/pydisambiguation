@@ -176,16 +176,18 @@ class DbRunner(object):
             curRun+=1
         self.writeResults()
 
-    def exampleRun(self):
+    def Testrun(self):
 
         examples = [
-            ("bass", "freshwater_bass.n.01", '"Though still a far cry from the lake’s record 52-pound bass of a decade ago, “you could fillet these fish again, and that made people very, very happy.” Mr. Paulson says'),
-            ("bass", "bass.n.07", 'An electric guitar and bass player stand off to one side, not really part of the scene, just as a sort of nod to gringo expectations again.'),
-            ("cold", "cold.n.03", "She shivered from the cold"),
-            ("cold", "cold.n.01", "I am taking aspirin for my cold")
+            ("bass", "freshwater_bass.n.01", '"Though still a far cry from the lake’s record 52-pound bass of a decade ago, “you could fillet these fish again, and that made people very, very happy.” Mr. Paulson says', "NN"),
+            ("bass", "bass.n.07", 'An electric guitar and bass player stand off to one side, not really part of the scene, just as a sort of nod to gringo expectations again.', "NN"),
+            ("cold", "cold.n.03", "She shivered from the cold", "NN"),
+            ("cold", "cold.n.01", "I am taking aspirin for my cold", "NN"),
+            ("plant", "plant.v.01", "Let's plant flowers in the garden", "VB"),
+            ("plant", "plant.n.01", "they built a large plant to manufacture automobiles", "NN")
         ]
 
         for example in examples:
             for algorithm in self.core.getAlgorithmsInfo():
-                self.runTest(algorithm['key'], example[0], example[2], example[1])
+                self.runTest(algorithm['key'], example[0], example[2], example[1], example[3])
         self.writeResults()

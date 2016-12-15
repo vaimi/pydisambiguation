@@ -1,0 +1,114 @@
+--SETUP--
+Run ended: 2016-12-15T08:01:57.468453
+Database: semcor
+Iterations: 200
+
+--RESULTS--
+Algorithm ID: 1
+Algorithm name: Euclidian + morphosemantic
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 1.00
+Verb recall: 0.00
+Average runtime: 0.0009
+Raw: {'n.incorrect': 3, 'n.none': 2, 'v.correct': 0, 'n.correct': 0, 'runtime': 0.17039, 'v.none': 1, 'v.incorrect': 0}
+
+Algorithm ID: 2
+Algorithm name: Standard Euclidean
+Noun precision: 0.25
+Noun recall: 0.20
+Verb precision: 1.00
+Verb recall: 0.00
+Average runtime: 0.0002
+Raw: {'n.incorrect': 3, 'n.none': 1, 'v.correct': 0, 'n.correct': 1, 'runtime': 0.040617, 'v.none': 1, 'v.incorrect': 0}
+
+Algorithm ID: 3
+Algorithm name: Lesk
+Noun precision: 0.20
+Noun recall: 0.20
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.0001
+Raw: {'n.incorrect': 4, 'n.none': 0, 'v.correct': 0, 'n.correct': 1, 'runtime': 0.017516, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 4
+Algorithm name: Adapted Lesk
+Noun precision: 0.20
+Noun recall: 0.20
+Verb precision: 1.00
+Verb recall: 1.00
+Average runtime: 0.0009
+Raw: {'n.incorrect': 4, 'n.none': 0, 'v.correct': 1, 'n.correct': 1, 'runtime': 0.18267500000000003, 'v.none': 0, 'v.incorrect': 0}
+
+Algorithm ID: 5
+Algorithm name: Cosine Lesk
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.0007
+Raw: {'n.incorrect': 5, 'n.none': 0, 'v.correct': 0, 'n.correct': 0, 'runtime': 0.133125, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 6
+Algorithm name: Jcn Similarity
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.1659
+Raw: {'n.incorrect': 5, 'n.none': 0, 'v.correct': 0, 'n.correct': 0, 'runtime': 33.176882, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 7
+Algorithm name: Lch similarity
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.0552
+Raw: {'n.incorrect': 5, 'n.none': 0, 'v.correct': 0, 'n.correct': 0, 'runtime': 11.035712, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 8
+Algorithm name: Lin similarity
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.1087
+Raw: {'n.incorrect': 1, 'n.none': 4, 'v.correct': 0, 'n.correct': 0, 'runtime': 21.748364999999996, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 9
+Algorithm name: Path similarity
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.0019
+Raw: {'n.incorrect': 5, 'n.none': 0, 'v.correct': 0, 'n.correct': 0, 'runtime': 0.37354800000000005, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 10
+Algorithm name: Res similarity
+Noun precision: 0.00
+Noun recall: 0.00
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.1159
+Raw: {'n.incorrect': 1, 'n.none': 4, 'v.correct': 0, 'n.correct': 0, 'runtime': 23.184822000000004, 'v.none': 0, 'v.incorrect': 1}
+
+Algorithm ID: 11
+Algorithm name: Simple Lesk
+Noun precision: 0.20
+Noun recall: 0.20
+Verb precision: 1.00
+Verb recall: 1.00
+Average runtime: 0.0006
+Raw: {'n.incorrect': 4, 'n.none': 0, 'v.correct': 1, 'n.correct': 1, 'runtime': 0.11561100000000002, 'v.none': 0, 'v.incorrect': 0}
+
+Algorithm ID: 12
+Algorithm name: Wup similarity
+Noun precision: 0.40
+Noun recall: 0.40
+Verb precision: 0.00
+Verb recall: 0.00
+Average runtime: 0.0014
+Raw: {'n.incorrect': 3, 'n.none': 0, 'v.correct': 0, 'n.correct': 2, 'runtime': 0.28617, 'v.none': 0, 'v.incorrect': 1}
+

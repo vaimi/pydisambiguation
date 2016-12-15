@@ -78,7 +78,9 @@ class EuclideanStandard(Euclidean):
         self.lemmatizer = WordNetLemmatizer()
 
     def run(self):
-        pos = self.settings['pos']
+        pos = None
+        if 'pos' in self.settings:
+            pos = self.settings['pos']
         word = self.lemmatizer.lemmatize(self.word)
         context = [self.lemmatizer.lemmatize(w) for w in self.context]
         context, pos = super(EuclideanStandard, self).getMeaningfulWords(context, self.word, pos=pos, both=False)
@@ -130,7 +132,9 @@ class EuclideanPlus(Euclidean):
         return None
 
     def run(self):
-        pos = self.settings['pos']
+        pos = None
+        if 'pos' in self.settings:
+            pos = self.settings['pos']
         context = [self.lemmatizer.lemmatize(w) for w in self.context]
         context, pos = super(EuclideanPlus, self).getMeaningfulWords(context, self.word, pos=pos, both=True)
         context = [self.replaceByNoun(verb) for verb in context]
