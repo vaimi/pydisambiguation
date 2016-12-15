@@ -12,9 +12,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
 
 from itertools import chain
 
@@ -27,26 +26,31 @@ class Euclidean(DisambiquationPlugin):
     def __init__(self, name=None, description=None, settings=None, parent=None):
         super(Euclidean, self).__init__(name, description, settings, parent)
 
-    def getMeaningfulWords(self, context, word):
+    def getMeaningfulWords(self, context, word, pos=None, both=None):
         tokenizedContext = [word for word in context if word not in stopwords.words('english')]
-
         posContext = pos_tag(tokenizedContext, tagset='universal')
-        posWord = pos_tag([word], tagset='universal')
-        wordPos = posWord[0][1]
-
+        posWord = ""
+        if not pos:
+            posWord = pos_tag([word], tagset='universal')
+            posWord = posWord[0][1]
+        else:
+            posWord='NOUN' if pos == 'NN' else 'VERB'
         meaningfulWords = None
         pos = None
-        if wordPos in ["NOUN", "VERB"]:
-            pos = wn.NOUN if wordPos is "NOUN" else wn.VERB
-            meaningfulWords = [a for (a, b) in posContext if b == wordPos]
+        print(posWord)
+        if posWord in ["VERB", "NOUN"]:
+            if both:
+                meaningfulWords = [a for (a, b) in posContext if b in ["VERB", "NOUN"]]
+            else:
+                meaningfulWords = [a for (a, b) in posContext if b == posWord]
         if meaningfulWords is None:
             return ([], pos)
-        return (meaningfulWords, pos)
+        return (meaningfulWords, posWord)
 
     def doEuclidean(self, word, context):
-        vectorizer = TfidfVectorizer()
+        vectorizer = CountVectorizer()
         senses = wn.synsets(word)
-        sensesDefinitions = [ss.definition() for ss in senses]
+        sensesDefinitions = [ss.definition()+' '.join(ss.lemma_names()) for ss in senses]
         tfIdf = vectorizer.fit_transform([' '.join(context)] + sensesDefinitions)
         result = euclidean_distances(tfIdf[0:1], tfIdf)
         resultList = result.tolist()
@@ -59,8 +63,8 @@ class Euclidean(DisambiquationPlugin):
             elif best == resultList[0][i]:
                 bestI = 0
         if bestI == 0:
-            return None
-        return(senses[bestI-1])
+            return None, None
+        return(senses[bestI-1], best)
 
 class EuclideanStandard(Euclidean):
     """Euclidean algorithm implementation for PyDisambiquation"""
@@ -69,17 +73,6 @@ class EuclideanStandard(Euclidean):
 
     token_dict = {}
     stemmer = PorterStemmer()
-
-    def stem_tokens(tokens, stemmer):
-        stemmed = []
-        for item in tokens:
-            stemmed.append(stemmer.stem(item))
-        return stemmed
-
-    def tokenize(text):
-        tokens = nltk.word_tokenize(text)
-        stems = stem_tokens(tokens, stemmer)
-        return stems
     
     def __init__(self, name=None, description=None, settings=None, parent=None):
         super(Euclidean, self).__init__(name, description, settings, parent)
@@ -88,7 +81,8 @@ class EuclideanStandard(Euclidean):
     def run(self):
         word = self.lemmatizer.lemmatize(self.word)
         context = [self.lemmatizer.lemmatize(w) for w in self.context]
-        return(super(EuclideanStandard, self).doEuclidean(word, context))
+        response, best_score = super(EuclideanStandard, self).doEuclidean(word, context)
+        return(response)
         
 
 class EuclideanPlus(Euclidean):
@@ -97,34 +91,63 @@ class EuclideanPlus(Euclidean):
     
     def __init__(self, name=None, description=None, settings=None, parent=None):
         super(Euclidean, self).__init__(name, description, settings, parent)
-        self.translator = self.parseXsl("external/morphosemantic-links.xls")   
+        self.translator = self.parseXsl("external/morphosemantic-links.xls")
+        self.backtranslator = {v: k for k, v in self.translator.items()}
         self.lemmatizer = WordNetLemmatizer() 
 
     def parseXsl(self, fname):
         f = xlrd.open_workbook(fname)
         f_sheet = f.sheet_by_index(0)
         translator = {}
-        for row in range(0, f_sheet.nrows):
+        for row in range(1, f_sheet.nrows):
             verb_obj = f_sheet.cell(row, 0)
             noun_obj = f_sheet.cell(row, 3)
-            v = verb_obj.value.split('%')
-            n = noun_obj.value.split('%')
-            if v[0] not in translator:
-                translator[v[0]] = []
-            translator[v[0]].append(n[0])
+            v = verb_obj.value
+            n = noun_obj.value
+            translator[wn.lemma_from_key(v).synset()] = wn.lemma_from_key(n).synset()
         return translator
 
     def replaceByNoun(self, verb):
-        if verb in self.translator:
-            return list(set(self.translator[verb]))
+        response = []
+        posWord = pos_tag(verb, tagset='universal')
+        if posWord[0][1] == 'NOUN':
+            return [verb]
+        synsets = wn.synsets(verb)
+        for synset in synsets:
+            if synset in self.translator:
+                response.append(synset.name().split('.')[0])
+        if response:
+            return list(set(response))
         return [verb]
 
+    def replaceByVerbSynset(self, nounSynset):
+        if nounSynset in self.backtranslator:
+            return self.backtranslator[nounSynset]
+        return None
+
     def run(self):
+        pos = self.settings['pos']
         context = [self.lemmatizer.lemmatize(w) for w in self.context]
+        context, pos = super(EuclideanPlus, self).getMeaningfulWords(context, self.word, pos=pos, both=True)
         context = [self.replaceByNoun(verb) for verb in context]
         context = [item for sublist in context for item in sublist]
-        word = self.lemmatizer.lemmatize(self.word)
-        word = self.replaceByNoun(word)
-        word = word[0]
+        if not context:
+            return None
+        words = self.lemmatizer.lemmatize(self.word)
+        if pos == 'VERB':
+            words = self.replaceByNoun(words)
+        else:
+            words = [words]
+        scores = {}
 
-        return(super(EuclideanPlus, self).doEuclidean(word, context))
+        for word in words:
+            response, score = super(EuclideanPlus, self).doEuclidean(word, context)
+            if response is not None:
+                scores[score] = response
+        if scores:
+            best = max(scores.keys())
+            if pos == 'VERB':
+                return(self.replaceByVerbSynset(scores[best]))
+            else:
+                return(scores[best])
+        return None

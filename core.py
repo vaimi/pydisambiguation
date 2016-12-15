@@ -74,7 +74,7 @@ class DisambiquateCore(object):
     def getAlgorithmsInfo(self):
         return map(self.getAlgorithmInfo, self.algorithms)
 
-    def runAlgorithm(self, key, word, sentence):
+    def runAlgorithm(self, key, word, sentence, settings=None):
         algorithm = self.algorithms[key]
         pattern = r'''(?x)          # set flag to allow verbose regexps
             (?:[A-Z]\.)+        # abbreviations, e.g. U.S.A.
@@ -83,6 +83,8 @@ class DisambiquateCore(object):
           | \.\.\.              # ellipsis
           | [][.,;"'?():_`-]    # these are separate tokens; includes ], [
         '''
+        if settings:
+            algorithm.settings = settings    
         algorithm.context = nltk.regexp_tokenize(sentence, pattern)
         algorithm.word = word
         result = algorithm.run()

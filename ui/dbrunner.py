@@ -87,7 +87,7 @@ class DbRunner(object):
 
     def runTest(self, algorithmId, word, sentence, rightSense, wordTag):
         t1 = datetime.datetime.now()
-        sense = self.core.runAlgorithm(algorithmId, word, sentence)
+        sense = self.core.runAlgorithm(algorithmId, word, sentence, {'pos':wordTag})
         t2 = datetime.datetime.now()
         delta = t2-t1
         self.algorithmscores[algorithmId]['runtime'] += delta.total_seconds()
@@ -137,6 +137,7 @@ class DbRunner(object):
                 fc = self.db.tagged_sents(fileids=currFile, tag='both')
                 fcList = list(fc)
             sentence = []
+
             sentPop = fcList.pop()
             for sent in sentPop:
                 for word in sent:
@@ -144,7 +145,7 @@ class DbRunner(object):
                         sentence.append(word.leaves())
                     else:
                         sentence.append([word])
-            if len(sentence) < 10:
+            if len(sentence) < 5 or len(sentence) > 20:
                 continue
             sentenceString = ' '.join([j for i in sentence for j in i])
             while len(sentPop) != 0:
@@ -163,7 +164,7 @@ class DbRunner(object):
                         if vcount < self.half:
                             vcount += 1
                             break
-            if pos[0][1] not in ['NN', 'VB']:
+            if not sentPop:
                 continue
 
             message = "Disambiquate %s \"%s\" using \"%s\"\n" % (pos[0][1], wordString, sentenceString)
