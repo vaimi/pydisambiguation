@@ -37,7 +37,6 @@ class Euclidean(DisambiquationPlugin):
             posWord='NOUN' if pos == 'NN' else 'VERB'
         meaningfulWords = None
         pos = None
-        print(posWord)
         if posWord in ["VERB", "NOUN"]:
             if both:
                 meaningfulWords = [a for (a, b) in posContext if b in ["VERB", "NOUN"]]
@@ -79,10 +78,15 @@ class EuclideanStandard(Euclidean):
         self.lemmatizer = WordNetLemmatizer()
 
     def run(self):
+        pos = self.settings['pos']
         word = self.lemmatizer.lemmatize(self.word)
         context = [self.lemmatizer.lemmatize(w) for w in self.context]
-        response, best_score = super(EuclideanStandard, self).doEuclidean(word, context)
-        return(response)
+        context, pos = super(EuclideanStandard, self).getMeaningfulWords(context, self.word, pos=pos, both=False)
+        if context:
+            response, best_score = super(EuclideanStandard, self).doEuclidean(word, context)
+            return(response)
+        else:
+            return(None)
         
 
 class EuclideanPlus(Euclidean):

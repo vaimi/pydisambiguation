@@ -14,18 +14,19 @@ class Lesk(DisambiquationPlugin):
         super(Lesk, self).__init__(name, description, settings, parent)
 
     def run(self):
-        pos = None if not "pos" in self.settings else self.settings['pos']
+        #pos = None if not "pos" in self.settings else self.settings['pos']
         stem = True if not "stem" in self.settings else self.settings['stem']
         hyperhypo = True if not "hyperhypo" in self.settings else self.settings['hyperhypo']
         if not self.context or not self.word:
             return None
-        sset = self.__parse(self.context, self.word, pos, stem, hyperhypo)
+        sset = self.__parse(self.context, self.word, None, stem, hyperhypo)
         if sset:
             return sset
         return None
 
     def __parse(self, context_sentence, ambiguous_word, pos=None, stem=True, hyperhypo=True):
         # Heavily based on http://stackoverflow.com/questions/20896278/word-sense-disambiguation-algorithm-in-python
+        # The implementation is kept as close as possible compared to the original to see the performance of this specifig implementaiton
         ps = PorterStemmer()
 
         max_overlaps = 0; lesk_sense = None
@@ -49,7 +50,6 @@ class Lesk(DisambiquationPlugin):
             if stem == True: # Matching exact words causes sparsity, so lets match stems.
                 lesk_dictionary = [ps.stem(i) for i in lesk_dictionary]
                 context_sentence = [ps.stem(i) for i in context_sentence]
-
             overlaps = set(lesk_dictionary).intersection(context_sentence)
 
             if len(overlaps) > max_overlaps:
